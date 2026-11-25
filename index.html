@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <title>Ames Housing EDA — Exploratory Data Analysis Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "@microsoft/focusgroup-polyfill": "https://cdn.jsdelivr.net/npm/@microsoft/focusgroup-polyfill/+esm"
+      }
+    }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" defer></script>
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-copy">
+        <p class="eyebrow">Exploratory Data Analysis &bull; Kaggle Ames Housing Dataset</p>
+        <h1>House Prices EDA Explorer</h1>
+        <p class="subtitle">
+          Interactive analysis of 1,460 residential sales and 81 features—distributional shape, correlations, outliers, and data quality without machine learning.
+        </p>
+      </div>
+      <div class="header-meta">
+        <span class="badge">Dataset: 1,460 &times; 81</span>
+        <span class="badge">Target: SalePrice</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="filters-panel" aria-label="Dataset filters">
+      <h2>Interactive Filters</h2>
+      <p class="filter-note">Filter all charts and KPIs dynamically from <code>train.csv</code>.</p>
+
+      <div class="control-group">
+        <label for="qual-min">Min Overall Quality: <strong id="qual-min-val">1</strong></label>
+        <input type="range" id="qual-min" min="1" max="10" value="1">
+      </div>
+
+      <div class="control-group">
+        <label for="qual-max">Max Overall Quality: <strong id="qual-max-val">10</strong></label>
+        <input type="range" id="qual-max" min="1" max="10" value="10">
+      </div>
+
+      <div class="control-group">
+        <label for="neighborhood-select">Neighborhood</label>
+        <select id="neighborhood-select">
+          <option value="ALL">All Neighborhoods (25)</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label for="air-select">Central Air</label>
+        <select id="air-select">
+          <option value="ALL">All (Yes &amp; No)</option>
+          <option value="Y">Central Air: Yes</option>
+          <option value="N">Central Air: No</option>
+        </select>
+      </div>
+
+      <label class="checkbox-row">
+        <input type="checkbox" id="remove-outliers" checked>
+        <span>Remove 2 extreme outliers (<code>GrLivArea &gt; 4000</code>, low price)</span>
+      </label>
+
+      <button type="button" id="reset-filters" class="btn-secondary">Reset Filters</button>
+    </aside>
+
+    <section class="workspace" aria-label="Analysis workspace">
+      <section class="kpi-grid" aria-label="Summary metrics">
+        <article class="kpi-card">
+          <span class="kpi-label">Houses Shown</span>
+          <strong class="kpi-value" id="kpi-count">—</strong>
+          <span class="kpi-sub" id="kpi-outliers-note">Outliers excluded: 2</span>
+        </article>
+        <article class="kpi-card">
+          <span class="kpi-label">Median SalePrice</span>
+          <strong class="kpi-value" id="kpi-median">—</strong>
+          <span class="kpi-sub">Robust center</span>
+        </article>
+        <article class="kpi-card">
+          <span class="kpi-label">Mean SalePrice</span>
+          <strong class="kpi-value" id="kpi-mean">—</strong>
+          <span class="kpi-sub" id="kpi-skew">Skewness: —</span>
+        </article>
+        <article class="kpi-card">
+          <span class="kpi-label">Median Living Area</span>
+          <strong class="kpi-value" id="kpi-area">—</strong>
+          <span class="kpi-sub">GrLivArea (sq ft)</span>
+        </article>
+      </section>
+
+      <div class="tabs">
+        <div class="tablist" focusgroup="tablist nomemory" aria-label="EDA Dashboard Views">
+          <button type="button" id="tab-overview" aria-selected="true" focusgroupstart>Distributions</button>
+          <button type="button" id="tab-relationships">Relationships &amp; Outliers</button>
+          <button type="button" id="tab-heatmap">Correlation Heatmap</button>
+          <button type="button" id="tab-neighborhoods">Neighborhood Table</button>
+          <button type="button" id="tab-dashboard">Colab Dashboard</button>
+          <button type="button" id="tab-insights">Questions &amp; Conclusions</button>
+        </div>
+
+        <div class="tabpanels">
+          <div role="tabpanel" aria-labelledby="tab-overview" tabindex="0">
+            <div class="panel-inner">
+              <div class="charts-grid">
+                <article class="chart-card">
+                  <div class="chart-head">
+                    <h3>SalePrice Distribution (Right-Skewed)</h3>
+                    <span class="chip">Step 4</span>
+                  </div>
+                  <p class="chart-desc">Mean exceeds median due to high-value homes; log transformation reduces skewness from 1.881 to 0.121.</p>
+                  <div class="canvas-wrap"><canvas id="chart-price-dist"></canvas></div>
+                </article>
+                <article class="chart-card">
+                  <div class="chart-head">
+                    <h3>Average SalePrice by Overall Quality (1–10)</h3>
+                    <span class="chip">Step 4</span>
+                  </div>
+                  <p class="chart-desc">Price rises steadily with OverallQual, with larger spread at the top quality levels.</p>
+                  <div class="canvas-wrap"><canvas id="chart-qual-bar"></canvas></div>
+                </article>
+                <article class="chart-card full-span">
+                  <div class="chart-head">
+                    <h3>Average SalePrice by Year Built</h3>
+                    <span class="chip">Step 10</span>
+                  </div>
+                  <p class="chart-desc">Newer construction generally commands higher sale prices, with pre-1940 character peaks.</p>
+                  <div class="canvas-wrap"><canvas id="chart-year-line"></canvas></div>
+                </article>
+              </div>
+            </div>
+          </div>
+
+          <div role="tabpanel" aria-labelledby="tab-relationships" hidden="until-found">
+            <div class="panel-inner">
+              <div class="charts-grid">
+                <article class="chart-card">
+                  <div class="chart-head">
+                    <h3>GrLivArea vs SalePrice (Outliers Highlighted)</h3>
+                    <span class="chip">Steps 6 &amp; 8</span>
+                  </div>
+                  <p class="chart-desc">Strong positive linear trend (r = 0.709). Uncheck "Remove 2 extreme outliers" in the sidebar to inspect IDs 524 and 1299.</p>
+                  <div class="canvas-wrap"><canvas id="chart-scatter-area"></canvas></div>
+                </article>
+                <article class="chart-card">
+                  <div class="chart-head">
+                    <h3>Top 10 Neighborhoods by Mean SalePrice</h3>
+                    <span class="chip">Step 10</span>
+                  </div>
+                  <p class="chart-desc">NoRidge, NridgHt, and StoneBr consistently lead the market.</p>
+                  <div class="canvas-wrap"><canvas id="chart-top-nb"></canvas></div>
+                </article>
+              </div>
+            </div>
+          </div>
+
+          <div role="tabpanel" aria-labelledby="tab-heatmap" hidden="until-found">
+            <div class="panel-inner">
+              <article class="chart-card">
+                <div class="chart-head">
+                  <h3>Top 10 Features Correlated with SalePrice</h3>
+                  <span class="chip">Steps 5 &amp; 7</span>
+                </div>
+                <p class="chart-desc">Pearson correlation matrix from the dataset. Notice multicollinearity between <code>GarageCars</code> &amp; <code>GarageArea</code> and between <code>TotalBsmtSF</code> &amp; <code>1stFlrSF</code>.</p>
+                <div id="heatmap-container" class="heatmap-scroll"></div>
+              </article>
+            </div>
+          </div>
+
+          <div role="tabpanel" aria-labelledby="tab-neighborhoods" hidden="until-found">
+            <div class="panel-inner">
+              <div class="table-header-row">
+                <div>
+                  <h3>Neighborhood Pricing &amp; Feature Summary</h3>
+                  <p class="chart-desc">Click any column header to sort dynamically. Adapts to stacked cards on narrow screens.</p>
+                </div>
+              </div>
+              <div id="table-status" class="sr-only" role="status"></div>
+              <div tabindex="0" role="region" aria-labelledby="neighborhood-table-caption" class="table-wrapper">
+                <table id="neighborhood-table">
+                  <caption id="neighborhood-table-caption">Summary statistics by Ames neighborhood</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col" data-type="text">
+                        <button type="button" commandfor="neighborhood-table" command="--sort">
+                          Neighborhood <span class="sort-icon" aria-hidden="true"></span>
+                        </button>
+                      </th>
+                      <th scope="col" data-type="number">
+                        <button type="button" commandfor="neighborhood-table" command="--sort">
+                          Sales Count <span class="sort-icon" aria-hidden="true"></span>
+                        </button>
+                      </th>
+                      <th scope="col" data-type="number" aria-sort="descending">
+                        <button type="button" commandfor="neighborhood-table" command="--sort">
+                          Median Price <span class="sort-icon" aria-hidden="true"></span>
+                        </button>
+                      </th>
+                      <th scope="col" data-type="number">
+                        <button type="button" commandfor="neighborhood-table" command="--sort">
+                          Mean Price <span class="sort-icon" aria-hidden="true"></span>
+                        </button>
+                      </th>
+                      <th scope="col" data-type="number">
+                        <button type="button" commandfor="neighborhood-table" command="--sort">
+                          Avg Quality <span class="sort-icon" aria-hidden="true"></span>
+                        </button>
+                      </th>
+                      <th scope="col" data-type="number">
+                        <button type="button" commandfor="neighborhood-table" command="--sort">
+                          Avg Living Area <span class="sort-icon" aria-hidden="true"></span>
+                        </button>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody id="neighborhood-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div role="tabpanel" aria-labelledby="tab-dashboard" hidden="until-found">
+            <div class="panel-inner">
+              <article class="chart-card">
+                <div class="chart-head">
+                  <h3>Static 2&times;2 Colab Summary Dashboard (<code>eda_dashboard.png</code>)</h3>
+                  <span class="chip">Step 10</span>
+                </div>
+                <p class="chart-desc">Generated directly in Google Colab using Matplotlib and Seaborn on the cleaned dataset (1,458 rows).</p>
+                <figure class="dashboard-figure">
+                  <img
+                    src="eda_dashboard.png"
+                    width="2100"
+                    height="1500"
+                    alt="2 by 2 EDA summary dashboard showing average price by year built, top 10 neighborhoods, SalePrice distribution with mean and median lines, and GrLivArea vs SalePrice colored by OverallQual"
+                    loading="lazy"
+                  >
+                  <figcaption>Figure 1: Exported Colab dashboard (2100 &times; 1500 px).</figcaption>
+                </figure>
+              </article>
+            </div>
+          </div>
+
+          <div role="tabpanel" aria-labelledby="tab-insights" hidden="until-found">
+            <div class="panel-inner">
+              <div class="insights-grid">
+                <article class="insight-card">
+                  <h3>1. How is SalePrice distributed?</h3>
+                  <p><code>SalePrice</code> is strongly <strong>right-skewed</strong> (skewness <code>1.881</code>; mean <code>$180,921</code> &gt; median <code>$163,000</code>). Applying a log transform reduces skewness to <code>0.121</code>, making it nearly normal.</p>
+                </article>
+                <article class="insight-card">
+                  <h3>2. Strongest numerical correlates?</h3>
+                  <p><code>OverallQual</code> (<code>r = 0.791</code>), <code>GrLivArea</code> (<code>r = 0.709</code>), <code>GarageCars</code> (<code>0.640</code>), <code>GarageArea</code> (<code>0.623</code>), and <code>TotalBsmtSF</code> (<code>0.614</code>). Correlation is scale-free, unlike covariance.</p>
+                </article>
+                <article class="insight-card">
+                  <h3>3. Does OverallQual change price steadily?</h3>
+                  <p>Yes—median price rises monotonically from quality 1 to 10, and price spread widens significantly in the 8–10 tier.</p>
+                </article>
+                <article class="insight-card">
+                  <h3>4. Do neighborhoods differ consistently?</h3>
+                  <p>Yes—<code>NoRidge</code>, <code>NridgHt</code>, and <code>StoneBr</code> have medians above <code>$300,000</code>, while older/smaller-lot neighborhoods cluster near <code>$100,000–$130,000</code>.</p>
+                </article>
+                <article class="insight-card">
+                  <h3>5. Outliers: errors or unusual sales?</h3>
+                  <p>IQR flags more points than Z-score on skewed features (e.g., 61 vs 22 on <code>SalePrice</code>) because extreme values inflate mean and std. Two huge houses (<code>GrLivArea &gt; 4000</code>, IDs 524 &amp; 1299) sold below <code>$200k</code> and distort trend lines.</p>
+                </article>
+                <article class="insight-card">
+                  <h3>6. Missing values: truly missing?</h3>
+                  <p>19 columns have <code>NA</code>, but most (<code>PoolQC</code>, <code>Alley</code>, <code>Fence</code>, <code>FireplaceQu</code>, <code>GarageType</code>, basement fields) mean <strong>feature absent</strong> (<code>"None"</code>), not unknown data. <code>LotFrontage</code> was imputed by neighborhood median.</p>
+                </article>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>Ames Housing Exploratory Data Analysis &bull; Built with Python (Google Colab) &amp; deployed as a static web app.</p>
+  </footer>
+</body>
+</html>
