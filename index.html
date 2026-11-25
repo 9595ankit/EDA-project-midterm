@@ -4,8 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="light dark">
-  <title>Ames Housing EDA — Exploratory Data Analysis Dashboard</title>
-  <link rel="stylesheet" href="styles.css">
+  <title>Ames Housing EDA — Exploratory Data Analysis</title>
   <script type="importmap">
     {
       "imports": {
@@ -14,7 +13,406 @@
     }
   </script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" defer></script>
-  <script type="module" src="app.js"></script>
+  <style>
+    :root {
+      --bg-light: #f5f7fb;
+      --surface-light: #ffffff;
+      --surface-alt-light: #eef2f7;
+      --text-light: #121826;
+      --muted-light: #4b5565;
+      --border-light: #d7dfea;
+      --accent-light: #1d4ed8;
+      --accent-soft-light: #dbeafe;
+      --bg-dark: #0b1120;
+      --surface-dark: #131c31;
+      --surface-alt-dark: #1b2640;
+      --text-dark: #eef2f8;
+      --muted-dark: #9aa7bd;
+      --border-dark: #273554;
+      --accent-dark: #60a5fa;
+      --accent-soft-dark: #1e3a5f;
+      --bg: var(--bg-light);
+      --surface: var(--surface-light);
+      --surface-alt: var(--surface-alt-light);
+      --text: var(--text-light);
+      --muted: var(--muted-light);
+      --border: var(--border-light);
+      --accent: var(--accent-light);
+      --accent-soft: var(--accent-soft-light);
+      --scrollbar-track: #e6ebf2;
+      --scrollbar-thumb: #6b7280;
+      @media (prefers-color-scheme: dark) {
+        --bg: var(--bg-dark);
+        --surface: var(--surface-dark);
+        --surface-alt: var(--surface-alt-dark);
+        --text: var(--text-dark);
+        --muted: var(--muted-dark);
+        --border: var(--border-dark);
+        --accent: var(--accent-dark);
+        --accent-soft: var(--accent-soft-dark);
+        --scrollbar-track: #182238;
+        --scrollbar-thumb: #7b8aa5;
+      }
+      @supports (color: light-dark(white, black)) {
+        --bg: light-dark(var(--bg-light), var(--bg-dark));
+        --surface: light-dark(var(--surface-light), var(--surface-dark));
+        --surface-alt: light-dark(var(--surface-alt-light), var(--surface-alt-dark));
+        --text: light-dark(var(--text-light), var(--text-dark));
+        --muted: light-dark(var(--muted-light), var(--muted-dark));
+        --border: light-dark(var(--border-light), var(--border-dark));
+        --accent: light-dark(var(--accent-light), var(--accent-dark));
+        --accent-soft: light-dark(var(--accent-soft-light), var(--accent-soft-dark));
+        --scrollbar-track: light-dark(#e6ebf2, #182238);
+        --scrollbar-thumb: light-dark(#6b7280, #7b8aa5);
+      }
+      color-scheme: light dark;
+      accent-color: var(--accent);
+      scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+    }
+    @supports not (scrollbar-color: auto) {
+      .table-wrapper, .tablist { scrollbar-width: auto; }
+      .table-wrapper::-webkit-scrollbar, .tablist::-webkit-scrollbar { width: 10px; height: 10px; }
+      .table-wrapper::-webkit-scrollbar-thumb, .tablist::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); }
+      .table-wrapper::-webkit-scrollbar-track, .tablist::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-block-size: 100dvh;
+      display: flex;
+      flex-direction: column;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.5;
+      background: var(--bg);
+      color: var(--text);
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.9em;
+      background: var(--surface-alt);
+      padding: 0.1em 0.35em;
+      border-radius: 4px;
+    }
+    .site-header {
+      background: var(--surface);
+      border-block-end: 1px solid var(--border);
+      padding: clamp(1rem, 2.5vw, 1.75rem) clamp(1rem, 3vw, 2.5rem);
+    }
+    .header-inner {
+      max-inline-size: 1440px;
+      margin-inline: auto;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 1rem;
+    }
+    .eyebrow {
+      margin: 0 0 0.25rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(1.5rem, 1.1rem + 1.8vw, 2.25rem);
+      line-height: 1.2;
+    }
+    .subtitle {
+      margin: 0.4rem 0 0;
+      max-inline-size: 68ch;
+      color: var(--muted);
+      font-size: clamp(0.95rem, 0.9rem + 0.25vw, 1.05rem);
+    }
+    .header-meta { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .badge {
+      background: var(--accent-soft);
+      color: var(--accent);
+      border: 1px solid var(--border);
+      padding: 0.35rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .layout {
+      flex: 1;
+      width: 100%;
+      max-inline-size: 1440px;
+      margin-inline: auto;
+      padding: clamp(1rem, 2.5vw, 2rem);
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      gap: 1.5rem;
+      align-items: start;
+    }
+    @media (max-width: 960px) {
+      .layout { grid-template-columns: minmax(0, 1fr); }
+    }
+    .filters-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      position: sticky;
+      inset-block-start: 1rem;
+    }
+    @media (max-width: 960px) {
+      .filters-panel { position: static; }
+    }
+    .filters-panel h2 { margin: 0; font-size: 1.1rem; }
+    .filter-note { margin: -0.5rem 0 0; font-size: 0.875rem; color: var(--muted); }
+    .control-group { display: flex; flex-direction: column; gap: 0.35rem; }
+    .control-group label { font-size: 0.9rem; font-weight: 500; }
+    .control-group select, .control-group input[type="range"], .control-group input[type="file"] { width: 100%; }
+    .control-group select {
+      padding: 0.5rem 0.65rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface-alt);
+      color: var(--text);
+      font: inherit;
+    }
+    .checkbox-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.55rem;
+      font-size: 0.875rem;
+      cursor: pointer;
+    }
+    .checkbox-row input {
+      margin-block-start: 0.25rem;
+      min-inline-size: 18px;
+      min-block-size: 18px;
+    }
+    .btn-secondary {
+      padding: 0.55rem 0.9rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface-alt);
+      color: var(--text);
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-secondary:hover { border-color: var(--accent); }
+    .workspace {
+      container-type: inline-size;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      min-inline-size: 0;
+    }
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 1rem;
+    }
+    @container (width < 720px) { .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @container (width < 420px) { .kpi-grid { grid-template-columns: minmax(0, 1fr); } }
+    .kpi-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.15rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    .kpi-label { font-size: 0.85rem; color: var(--muted); font-weight: 500; }
+    .kpi-value { font-size: clamp(1.3rem, 1.1rem + 0.9vw, 1.75rem); line-height: 1.15; }
+    .kpi-sub { font-size: 0.8rem; color: var(--muted); }
+    .tabs { display: flex; flex-direction: column; }
+    @property --fade-start { syntax: "<length>"; inherits: false; initial-value: 0px; }
+    @property --fade-end { syntax: "<length>"; inherits: false; initial-value: 0px; }
+    .tablist {
+      display: flex;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      gap: 0.25rem;
+      border-block-end: 1px solid var(--border);
+      scroll-snap-type: inline proximity;
+      scroll-padding-inline: 2.5rem;
+      --fade-size: 2.5rem;
+      --fade-dir: right;
+      --fade-start-pos: 0;
+      --fade-end-pos: 100%;
+      mask:
+        linear-gradient(black, black) no-clip subtract,
+        linear-gradient(to var(--fade-dir), black, transparent) var(--fade-start-pos) 0 / var(--fade-start) 100% no-repeat no-clip,
+        linear-gradient(to var(--fade-dir), transparent, black) var(--fade-end-pos) 0 / var(--fade-end) 100% no-repeat no-clip;
+      animation: reveal-fade-start linear both, hide-fade-end linear both;
+      animation-timeline: scroll(self inline);
+      animation-range: 0 var(--fade-size), calc(100% - var(--fade-size)) 100%;
+    }
+    @keyframes reveal-fade-start { to { --fade-start: var(--fade-size); } }
+    @keyframes hide-fade-end { from { --fade-end: var(--fade-size); } }
+    .tablist > button {
+      flex: none;
+      scroll-snap-align: start;
+      position: relative;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      font-weight: 600;
+      font-size: 0.92rem;
+      padding: 0.75rem 1rem;
+      min-block-size: 44px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .tablist > button:hover { color: var(--text); }
+    .tablist > button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 6px; }
+    .tablist > button[aria-selected="true"] { color: var(--accent); }
+    .tablist > button[aria-selected="true"]::after {
+      content: "";
+      position: absolute;
+      inset: auto 0 0;
+      border-block-end: 3px solid var(--accent);
+    }
+    .tabpanels { display: grid; }
+    .tabpanels > [role="tabpanel"] { grid-area: 1 / 1; }
+    .panel-inner { padding-block-start: 1.25rem; }
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1.25rem;
+    }
+    @container (width < 760px) { .charts-grid { grid-template-columns: minmax(0, 1fr); } }
+    .chart-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.15rem;
+      min-inline-size: 0;
+    }
+    .chart-card.full-span { grid-column: 1 / -1; }
+    .chart-head { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; }
+    .chart-head h3 { margin: 0; font-size: 1.05rem; }
+    .chip {
+      font-size: 0.75rem;
+      font-weight: 700;
+      background: var(--surface-alt);
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .chart-desc { margin: 0.35rem 0 0.9rem; font-size: 0.875rem; color: var(--muted); }
+    .canvas-wrap { position: relative; block-size: 300px; inline-size: 100%; }
+    .heatmap-scroll { overflow-x: auto; }
+    .heatmap-table { border-collapse: collapse; font-size: 0.8rem; min-inline-size: 720px; width: 100%; }
+    .heatmap-table th, .heatmap-table td { border: 1px solid var(--border); padding: 0.45rem 0.4rem; text-align: center; }
+    .heatmap-table th { background: var(--surface-alt); font-weight: 600; }
+    .heatmap-table tbody th { text-align: start; padding-inline: 0.65rem; }
+    .table-header-row { margin-block-end: 0.75rem; }
+    .table-header-row h3 { margin: 0; font-size: 1.05rem; }
+    .table-wrapper {
+      overflow: auto;
+      max-inline-size: 100%;
+      max-block-size: min(520px, 75dvh);
+      container-type: inline-size;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+    .table-wrapper:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    #neighborhood-table {
+      border-collapse: separate;
+      border-spacing: 0;
+      width: 100%;
+      min-inline-size: 620px;
+      font-size: 0.92rem;
+    }
+    #neighborhood-table caption { text-align: start; padding: 0.75rem 1rem 0.35rem; font-size: 0.85rem; color: var(--muted); }
+    #neighborhood-table thead { position: sticky; inset-block-start: 0; z-index: 2; background: var(--surface-alt); }
+    #neighborhood-table th, #neighborhood-table td { padding: 0.65rem 0.9rem; border-block-end: 1px solid var(--border); text-align: start; }
+    #neighborhood-table th:has(> button) { padding: 0; }
+    #neighborhood-table th button {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.4rem;
+      width: 100%;
+      min-block-size: 40px;
+      padding: 0.65rem 0.9rem;
+      border: 0;
+      background: transparent;
+      color: var(--text);
+      font: inherit;
+      font-weight: 700;
+      text-align: start;
+      cursor: pointer;
+    }
+    #neighborhood-table th button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+    .sort-icon::before { content: "↕"; opacity: 0.45; font-size: 0.85em; }
+    th[aria-sort="ascending"] .sort-icon::before { content: "▲"; opacity: 1; color: var(--accent); }
+    th[aria-sort="descending"] .sort-icon::before { content: "▼"; opacity: 1; color: var(--accent); }
+    #neighborhood-table tbody th {
+      position: sticky;
+      inset-inline-start: 0;
+      background: var(--surface);
+      font-weight: 600;
+      z-index: 1;
+    }
+    #neighborhood-table tbody tr { view-transition-name: match-element; }
+    @media (prefers-reduced-motion: reduce) {
+      ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none; }
+    }
+    @container (width < 600px) {
+      #neighborhood-table { min-inline-size: 0; }
+      #neighborhood-table, #neighborhood-table thead, #neighborhood-table tbody,
+      #neighborhood-table tr, #neighborhood-table th, #neighborhood-table td { display: block; }
+      #neighborhood-table thead { display: none; }
+      #neighborhood-table tbody tr { margin: 0.75rem; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+      #neighborhood-table tbody th { position: sticky; inset-block-start: 0; z-index: 2; background: var(--surface-alt); }
+      #neighborhood-table {
+        --label-1: "Neighborhood";
+        --label-2: "Sales Count";
+        --label-3: "Median Price";
+        --label-4: "Mean Price";
+        --label-5: "Avg Quality";
+        --label-6: "Avg Living Area";
+      }
+      #neighborhood-table td:nth-child(2)::before { content: var(--label-2) ": "; font-weight: 600; }
+      #neighborhood-table td:nth-child(3)::before { content: var(--label-3) ": "; font-weight: 600; }
+      #neighborhood-table td:nth-child(4)::before { content: var(--label-4) ": "; font-weight: 600; }
+      #neighborhood-table td:nth-child(5)::before { content: var(--label-5) ": "; font-weight: 600; }
+      #neighborhood-table td:nth-child(6)::before { content: var(--label-6) ": "; font-weight: 600; }
+    }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+    .insights-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+    @container (width < 680px) { .insights-grid { grid-template-columns: minmax(0, 1fr); } }
+    .insight-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.15rem;
+    }
+    .insight-card h3 { margin: 0 0 0.45rem; font-size: 1rem; color: var(--accent); }
+    .insight-card p { margin: 0; font-size: 0.92rem; color: var(--text); }
+    .site-footer {
+      border-block-start: 1px solid var(--border);
+      background: var(--surface);
+      padding: 1rem 1.5rem;
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+  </style>
 </head>
 <body>
   <header class="site-header">
@@ -32,29 +430,24 @@
       </div>
     </div>
   </header>
-
   <main class="layout">
     <aside class="filters-panel" aria-label="Dataset filters">
       <h2>Interactive Filters</h2>
-      <p class="filter-note">Filter all charts and KPIs dynamically from <code>train.csv</code>.</p>
-
+      <p class="filter-note">All 1,460 rows of <code>train.csv</code> are built in. Optionally load another CSV below.</p>
       <div class="control-group">
         <label for="qual-min">Min Overall Quality: <strong id="qual-min-val">1</strong></label>
         <input type="range" id="qual-min" min="1" max="10" value="1">
       </div>
-
       <div class="control-group">
         <label for="qual-max">Max Overall Quality: <strong id="qual-max-val">10</strong></label>
         <input type="range" id="qual-max" min="1" max="10" value="10">
       </div>
-
       <div class="control-group">
         <label for="neighborhood-select">Neighborhood</label>
         <select id="neighborhood-select">
           <option value="ALL">All Neighborhoods (25)</option>
         </select>
       </div>
-
       <div class="control-group">
         <label for="air-select">Central Air</label>
         <select id="air-select">
@@ -63,21 +456,22 @@
           <option value="N">Central Air: No</option>
         </select>
       </div>
-
       <label class="checkbox-row">
         <input type="checkbox" id="remove-outliers" checked>
         <span>Remove 2 extreme outliers (<code>GrLivArea &gt; 4000</code>, low price)</span>
       </label>
-
+      <div class="control-group">
+        <label for="csv-upload">Load Custom <code>train.csv</code> (Optional)</label>
+        <input type="file" id="csv-upload" accept=".csv">
+      </div>
       <button type="button" id="reset-filters" class="btn-secondary">Reset Filters</button>
     </aside>
-
     <section class="workspace" aria-label="Analysis workspace">
       <section class="kpi-grid" aria-label="Summary metrics">
         <article class="kpi-card">
           <span class="kpi-label">Houses Shown</span>
           <strong class="kpi-value" id="kpi-count">—</strong>
-          <span class="kpi-sub" id="kpi-outliers-note">Outliers excluded: 2</span>
+          <span class="kpi-sub" id="kpi-outliers-note">2 extreme outliers excluded</span>
         </article>
         <article class="kpi-card">
           <span class="kpi-label">Median SalePrice</span>
@@ -95,72 +489,67 @@
           <span class="kpi-sub">GrLivArea (sq ft)</span>
         </article>
       </section>
-
       <div class="tabs">
         <div class="tablist" focusgroup="tablist nomemory" aria-label="EDA Dashboard Views">
-          <button type="button" id="tab-overview" aria-selected="true" focusgroupstart>Distributions</button>
-          <button type="button" id="tab-relationships">Relationships &amp; Outliers</button>
+          <button type="button" id="tab-overview" aria-selected="true" focusgroupstart>2&times;2 Summary Dashboard</button>
+          <button type="button" id="tab-relationships">Quality &amp; Outliers</button>
           <button type="button" id="tab-heatmap">Correlation Heatmap</button>
           <button type="button" id="tab-neighborhoods">Neighborhood Table</button>
-          <button type="button" id="tab-dashboard">Colab Dashboard</button>
           <button type="button" id="tab-insights">Questions &amp; Conclusions</button>
         </div>
-
         <div class="tabpanels">
           <div role="tabpanel" aria-labelledby="tab-overview" tabindex="0">
             <div class="panel-inner">
               <div class="charts-grid">
                 <article class="chart-card">
                   <div class="chart-head">
-                    <h3>SalePrice Distribution (Right-Skewed)</h3>
-                    <span class="chip">Step 4</span>
-                  </div>
-                  <p class="chart-desc">Mean exceeds median due to high-value homes; log transformation reduces skewness from 1.881 to 0.121.</p>
-                  <div class="canvas-wrap"><canvas id="chart-price-dist"></canvas></div>
-                </article>
-                <article class="chart-card">
-                  <div class="chart-head">
-                    <h3>Average SalePrice by Overall Quality (1–10)</h3>
-                    <span class="chip">Step 4</span>
-                  </div>
-                  <p class="chart-desc">Price rises steadily with OverallQual, with larger spread at the top quality levels.</p>
-                  <div class="canvas-wrap"><canvas id="chart-qual-bar"></canvas></div>
-                </article>
-                <article class="chart-card full-span">
-                  <div class="chart-head">
                     <h3>Average SalePrice by Year Built</h3>
-                    <span class="chip">Step 10</span>
+                    <span class="chip">Panel 1</span>
                   </div>
-                  <p class="chart-desc">Newer construction generally commands higher sale prices, with pre-1940 character peaks.</p>
+                  <p class="chart-desc">Historical trend of mean house sale prices by construction year.</p>
                   <div class="canvas-wrap"><canvas id="chart-year-line"></canvas></div>
                 </article>
-              </div>
-            </div>
-          </div>
-
-          <div role="tabpanel" aria-labelledby="tab-relationships" hidden="until-found">
-            <div class="panel-inner">
-              <div class="charts-grid">
                 <article class="chart-card">
                   <div class="chart-head">
-                    <h3>GrLivArea vs SalePrice (Outliers Highlighted)</h3>
-                    <span class="chip">Steps 6 &amp; 8</span>
-                  </div>
-                  <p class="chart-desc">Strong positive linear trend (r = 0.709). Uncheck "Remove 2 extreme outliers" in the sidebar to inspect IDs 524 and 1299.</p>
-                  <div class="canvas-wrap"><canvas id="chart-scatter-area"></canvas></div>
-                </article>
-                <article class="chart-card">
-                  <div class="chart-head">
-                    <h3>Top 10 Neighborhoods by Mean SalePrice</h3>
-                    <span class="chip">Step 10</span>
+                    <h3>Top 10 Neighborhoods by Mean Price</h3>
+                    <span class="chip">Panel 2</span>
                   </div>
                   <p class="chart-desc">NoRidge, NridgHt, and StoneBr consistently lead the market.</p>
                   <div class="canvas-wrap"><canvas id="chart-top-nb"></canvas></div>
                 </article>
+                <article class="chart-card">
+                  <div class="chart-head">
+                    <h3>SalePrice Distribution (Right-Skewed)</h3>
+                    <span class="chip">Panel 3</span>
+                  </div>
+                  <p class="chart-desc">Mean exceeds median; log transform reduces skewness from 1.881 to 0.121.</p>
+                  <div class="canvas-wrap"><canvas id="chart-price-dist"></canvas></div>
+                </article>
+                <article class="chart-card">
+                  <div class="chart-head">
+                    <h3>GrLivArea vs SalePrice</h3>
+                    <span class="chip">Panel 4</span>
+                  </div>
+                  <p class="chart-desc">Strong positive correlation (r = 0.709). Uncheck outlier removal to see IDs 524 &amp; 1299.</p>
+                  <div class="canvas-wrap"><canvas id="chart-scatter-area"></canvas></div>
+                </article>
               </div>
             </div>
           </div>
-
+          <div role="tabpanel" aria-labelledby="tab-relationships" hidden="until-found">
+            <div class="panel-inner">
+              <div class="charts-grid">
+                <article class="chart-card full-span">
+                  <div class="chart-head">
+                    <h3>Average SalePrice by Overall Quality (1–10)</h3>
+                    <span class="chip">Step 4</span>
+                  </div>
+                  <p class="chart-desc">Price rises steadily with OverallQual, with wider spread in the 8–10 luxury tier.</p>
+                  <div class="canvas-wrap"><canvas id="chart-qual-bar"></canvas></div>
+                </article>
+              </div>
+            </div>
+          </div>
           <div role="tabpanel" aria-labelledby="tab-heatmap" hidden="until-found">
             <div class="panel-inner">
               <article class="chart-card">
@@ -168,18 +557,17 @@
                   <h3>Top 10 Features Correlated with SalePrice</h3>
                   <span class="chip">Steps 5 &amp; 7</span>
                 </div>
-                <p class="chart-desc">Pearson correlation matrix from the dataset. Notice multicollinearity between <code>GarageCars</code> &amp; <code>GarageArea</code> and between <code>TotalBsmtSF</code> &amp; <code>1stFlrSF</code>.</p>
+                <p class="chart-desc">Pearson correlation matrix from the dataset. Notice multicollinearity between <code>GarageCars</code> &amp; <code>GarageArea</code>.</p>
                 <div id="heatmap-container" class="heatmap-scroll"></div>
               </article>
             </div>
           </div>
-
           <div role="tabpanel" aria-labelledby="tab-neighborhoods" hidden="until-found">
             <div class="panel-inner">
               <div class="table-header-row">
                 <div>
                   <h3>Neighborhood Pricing &amp; Feature Summary</h3>
-                  <p class="chart-desc">Click any column header to sort dynamically. Adapts to stacked cards on narrow screens.</p>
+                  <p class="chart-desc">Click any column header to sort dynamically. Stacks into cards on narrow screens.</p>
                 </div>
               </div>
               <div id="table-status" class="sr-only" role="status"></div>
@@ -225,55 +613,32 @@
               </div>
             </div>
           </div>
-
-          <div role="tabpanel" aria-labelledby="tab-dashboard" hidden="until-found">
-            <div class="panel-inner">
-              <article class="chart-card">
-                <div class="chart-head">
-                  <h3>Static 2&times;2 Colab Summary Dashboard (<code>eda_dashboard.png</code>)</h3>
-                  <span class="chip">Step 10</span>
-                </div>
-                <p class="chart-desc">Generated directly in Google Colab using Matplotlib and Seaborn on the cleaned dataset (1,458 rows).</p>
-                <figure class="dashboard-figure">
-                  <img
-                    src="eda_dashboard.png"
-                    width="2100"
-                    height="1500"
-                    alt="2 by 2 EDA summary dashboard showing average price by year built, top 10 neighborhoods, SalePrice distribution with mean and median lines, and GrLivArea vs SalePrice colored by OverallQual"
-                    loading="lazy"
-                  >
-                  <figcaption>Figure 1: Exported Colab dashboard (2100 &times; 1500 px).</figcaption>
-                </figure>
-              </article>
-            </div>
-          </div>
-
           <div role="tabpanel" aria-labelledby="tab-insights" hidden="until-found">
             <div class="panel-inner">
               <div class="insights-grid">
                 <article class="insight-card">
                   <h3>1. How is SalePrice distributed?</h3>
-                  <p><code>SalePrice</code> is strongly <strong>right-skewed</strong> (skewness <code>1.881</code>; mean <code>$180,921</code> &gt; median <code>$163,000</code>). Applying a log transform reduces skewness to <code>0.121</code>, making it nearly normal.</p>
+                  <p><code>SalePrice</code> is strongly <strong>right-skewed</strong> (skewness <code>1.881</code>; mean <code>$180,921</code> &gt; median <code>$163,000</code>). Log transform reduces skewness to <code>0.121</code>.</p>
                 </article>
                 <article class="insight-card">
                   <h3>2. Strongest numerical correlates?</h3>
-                  <p><code>OverallQual</code> (<code>r = 0.791</code>), <code>GrLivArea</code> (<code>r = 0.709</code>), <code>GarageCars</code> (<code>0.640</code>), <code>GarageArea</code> (<code>0.623</code>), and <code>TotalBsmtSF</code> (<code>0.614</code>). Correlation is scale-free, unlike covariance.</p>
+                  <p><code>OverallQual</code> (<code>r = 0.791</code>), <code>GrLivArea</code> (<code>r = 0.709</code>), <code>GarageCars</code> (<code>0.640</code>), <code>GarageArea</code> (<code>0.623</code>), and <code>TotalBsmtSF</code> (<code>0.614</code>).</p>
                 </article>
                 <article class="insight-card">
                   <h3>3. Does OverallQual change price steadily?</h3>
-                  <p>Yes—median price rises monotonically from quality 1 to 10, and price spread widens significantly in the 8–10 tier.</p>
+                  <p>Yes—median price rises steadily from quality 1 to 10, with wider variance at the top quality tiers.</p>
                 </article>
                 <article class="insight-card">
                   <h3>4. Do neighborhoods differ consistently?</h3>
-                  <p>Yes—<code>NoRidge</code>, <code>NridgHt</code>, and <code>StoneBr</code> have medians above <code>$300,000</code>, while older/smaller-lot neighborhoods cluster near <code>$100,000–$130,000</code>.</p>
+                  <p>Yes—<code>NoRidge</code>, <code>NridgHt</code>, and <code>StoneBr</code> have medians above <code>$300,000</code>, while smaller-lot neighborhoods cluster around <code>$100k–$130k</code>.</p>
                 </article>
                 <article class="insight-card">
                   <h3>5. Outliers: errors or unusual sales?</h3>
-                  <p>IQR flags more points than Z-score on skewed features (e.g., 61 vs 22 on <code>SalePrice</code>) because extreme values inflate mean and std. Two huge houses (<code>GrLivArea &gt; 4000</code>, IDs 524 &amp; 1299) sold below <code>$200k</code> and distort trend lines.</p>
+                  <p>IQR flags more points than Z-score on skewed variables (61 vs 22 on <code>SalePrice</code>). Two large houses (<code>GrLivArea &gt; 4000</code>, IDs 524 &amp; 1299) sold cheaply and distort trend lines.</p>
                 </article>
                 <article class="insight-card">
                   <h3>6. Missing values: truly missing?</h3>
-                  <p>19 columns have <code>NA</code>, but most (<code>PoolQC</code>, <code>Alley</code>, <code>Fence</code>, <code>FireplaceQu</code>, <code>GarageType</code>, basement fields) mean <strong>feature absent</strong> (<code>"None"</code>), not unknown data. <code>LotFrontage</code> was imputed by neighborhood median.</p>
+                  <p>19 columns have <code>NA</code>, mostly meaning <strong>feature absent</strong> (<code>PoolQC</code>, <code>Alley</code>, <code>Fence</code>, <code>FireplaceQu</code>, <code>GarageType</code>). <code>LotFrontage</code> was filled with neighborhood medians.</p>
                 </article>
               </div>
             </div>
@@ -282,9 +647,12 @@
       </div>
     </section>
   </main>
-
   <footer class="site-footer">
-    <p>Ames Housing Exploratory Data Analysis &bull; Built with Python (Google Colab) &amp; deployed as a static web app.</p>
+    <p>Ames Housing Exploratory Data Analysis &bull; Built in Google Colab &amp; deployed as a single-file web dashboard.</p>
   </footer>
-</body>
-</html>
+  <script type="module">
+    if (!Object.hasOwn(HTMLElement.prototype, "focusGroup")) {
+      import("@microsoft/focusgroup-polyfill")
+        .then(({ polyfill }) => polyfill())
+        .catch(() => {});
+    }
